@@ -1,0 +1,42 @@
+services:
+  mongodb:
+    image: mongo:8.0
+    container_name: clipora-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  backend:
+    build:
+      context: ./backend
+    container_name: clipora-backend
+    restart: unless-stopped
+    depends_on:
+      - mongodb
+    ports:
+      - "8000:8000"
+    environment:
+      MONGODB_URI: mongodb://mongodb:27017
+      MONGODB_DB: clipora_ai
+      STORAGE_DIR: /app/storage
+      CORS_ORIGINS: http://localhost:5173,http://127.0.0.1:5173
+    volumes:
+      - clipora_storage:/app/storage
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: clipora-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_API_PROXY_TARGET: http://backend:8000
+
+volumes:
+  mongo_data:
+  clipora_storage:
