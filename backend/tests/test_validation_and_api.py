@@ -1,9 +1,18 @@
+import time
 from pathlib import Path
 
+from fastapi.testclient import TestClient
+
+from app.core.config import Settings
+from app.main import create_app
 from tests.conftest import build_synthetic_color_video
 
 
 def test_system_health_endpoint(client):
+    live_res = client.get("/health")
+    assert live_res.status_code == 200
+    assert live_res.json()["status"] == "ok"
+
     res = client.get("/api/health")
     assert res.status_code == 200
     data = res.json()
@@ -16,6 +25,26 @@ def test_system_health_endpoint(client):
     assert data["nlp_model_available"] is True
     assert data["min_video_duration_seconds"] == 10.0
     assert data["max_video_duration_seconds"] == 1200.0
+
+
+def test_health_liveness_fast_even_when_mongodb_unreachable(tmp_path: Path):
+    bad_settings = Settings(
+        mongodb_uri="mongodb://10.255.255.1:27017",
+        storage_dir=tmp_path / "storage",
+    )
+    app = create_app(bad_settings)
+    t0 = time.monotonic()
+    with TestClient(app) as c:
+        live = c.get("/health")
+        diag = c.get("/api/health")
+    elapsed = time.monotonic() - t0
+
+    assert live.status_code == 200
+    assert live.json()["status"] == "ok"
+    assert diag.status_code == 200
+    assert diag.json()["mongodb_connected"] is False
+    assert diag.json()["status"] == "degraded"
+    assert elapsed < 3.5
 
 
 def test_reject_invalid_extension(client, tmp_path: Path):

@@ -298,6 +298,7 @@ Render does not host MongoDB natively, so pair **MongoDB Atlas** with two Render
    - **Language / Runtime**: `Docker` (uses [backend/Dockerfile](backend/Dockerfile), automatically binds Render's `$PORT`)
    - **Instance Type**: `Standard` (`2 GB RAM`) or higher
    - **Health Check Path**: `/health`
+   - **Start Command**: *(leave blank so Render runs [backend/Dockerfile](backend/Dockerfile)'s `uvicorn ... --port ${PORT:-8000}`)*
 4. Under **Disks**, click **Add Disk**:
    - **Name**: `clipora-storage`
    - **Mount Path**: `/app/storage`

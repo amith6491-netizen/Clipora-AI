@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime, timezone
 from typing import Any
 
@@ -17,29 +18,40 @@ class DatabaseManager:
         self.settings = settings
         self.client: AsyncMongoClient | None = None
         self.db = None
+        self._index_task: asyncio.Task[None] | None = None
 
     async def connect(self) -> None:
         if self.client is not None:
             return
         self.client = AsyncMongoClient(
             self.settings.mongodb_uri,
-            serverSelectionTimeoutMS=5000,
+            serverSelectionTimeoutMS=2500,
+            connectTimeoutMS=2500,
         )
         self.db = self.client[self.settings.mongodb_db]
-        await self.ensure_indexes()
+        # Ensure indexes in background so unreachable/slow MongoDB never blocks port binding on startup.
+        if self._index_task is None or self._index_task.done():
+            self._index_task = asyncio.create_task(self.ensure_indexes())
 
     async def close(self) -> None:
+        if self._index_task is not None and not self._index_task.done():
+            self._index_task.cancel()
+            try:
+                await self._index_task
+            except (asyncio.CancelledError, Exception):
+                pass
+        self._index_task = None
         if self.client is not None:
             await self.client.close()
             self.client = None
             self.db = None
 
-    async def ping(self) -> bool:
+    async def ping(self, timeout_sec: float = 1.5) -> bool:
         try:
             if self.client is None:
                 await self.connect()
             assert self.client is not None
-            await self.client.admin.command("ping")
+            await asyncio.wait_for(self.client.admin.command("ping"), timeout=timeout_sec)
             return True
         except Exception:
             return False

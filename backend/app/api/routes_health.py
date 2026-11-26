@@ -14,13 +14,19 @@ def _module_available(module_name: str) -> bool:
     return importlib.util.find_spec(module_name) is not None
 
 
-@router.get("/health", response_model=SystemHealthOut)
+@router.get("/health")
+async def liveness_health(request: Request) -> dict[str, str]:
+    """Lightweight liveness probe for container hosts (e.g. Render) so startup checks never stall on DB I/O."""
+    settings: Settings = request.app.state.settings
+    return {"status": "ok", "service": settings.app_name}
+
+
 @router.get("/api/health", response_model=SystemHealthOut)
 async def get_system_health(request: Request) -> SystemHealthOut:
     db: DatabaseManager = request.app.state.db
     settings: Settings = request.app.state.settings
 
-    mongo_ok = await db.ping()
+    mongo_ok = await db.ping(timeout_sec=1.5)
     ffmpeg_ok = False
     ffprobe_ok = False
     try:

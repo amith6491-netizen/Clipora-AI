@@ -16,16 +16,7 @@ from app.models.schemas import (
     RenderedVariant,
     SubtitleStyle,
 )
-from app.services.audio_service import analyze_audio_dynamics, extract_wav_audio
-from app.services.ranking_service import select_and_rank_shorts
-from app.services.render_service import build_variant_key, render_clip_mp4
-from app.services.scene_service import detect_scenes_and_visual_dynamics
 from app.services.storage_service import generate_thumbnail, get_source_video_path
-from app.services.transcription_service import (
-    build_subtitle_cues_from_segments,
-    transcribe_audio_with_whisper,
-)
-from app.services.youtube_service import download_youtube_video
 
 PIPELINE_STEP_DEFS: list[tuple[str, str]] = [
     ("audio_extract", "Extracting Audio Track"),
@@ -272,6 +263,16 @@ async def _run_pipeline(
         return _cb
 
     try:
+        from app.services.audio_service import analyze_audio_dynamics, extract_wav_audio
+        from app.services.ranking_service import select_and_rank_shorts
+        from app.services.render_service import build_variant_key, render_clip_mp4
+        from app.services.scene_service import detect_scenes_and_visual_dynamics
+        from app.services.transcription_service import (
+            build_subtitle_cues_from_segments,
+            transcribe_audio_with_whisper,
+        )
+        from app.services.youtube_service import download_youtube_video
+
         source_path = get_source_video_path(settings, video_id, video_doc["format_ext"])
         if is_youtube:
             current_stage = "youtube_download"
