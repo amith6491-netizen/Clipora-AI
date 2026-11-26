@@ -12,7 +12,7 @@ import {
   UploadCloud,
   Youtube,
 } from "lucide-react";
-import { api, formatBytes, formatDuration } from "../api/client";
+import { api, formatBytes, formatDuration, resolveApiUrl } from "../api/client";
 import { EmptyState } from "../components/common/EmptyState";
 import { ErrorBanner } from "../components/common/ErrorBanner";
 import { VideoStatusBadge } from "../components/layout/StatusBadge";
@@ -176,7 +176,7 @@ export function DashboardPage() {
               className="flex flex-col justify-between rounded-2xl border border-white/10 bg-[#0d121f] p-4 sm:p-5 transition-colors hover:border-white/20"
             >
               <div className="flex gap-4">
-                <ProjectThumb src={video.poster_url} title={video.title} />
+                <ProjectThumb src={resolveApiUrl(video.poster_url)} title={video.title} />
                 <div className="min-w-0 flex-1 space-y-2">
                   <div className="flex items-start justify-between gap-2">
                     <h3 className="truncate text-base font-semibold text-white">{video.title}</h3>

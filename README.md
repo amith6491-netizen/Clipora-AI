@@ -227,3 +227,125 @@ cd backend
 cd frontend
 npm run build
 ```
+
+---
+
+## How to Deploy (Production)
+
+Because Clipora AI runs real ML models (`Faster-Whisper`, `SentenceTransformers`, `PySceneDetect`, `OpenCV`) and `FFmpeg` rendering, choose a server or container host with at least **2–4 GB RAM** (4 GB+ recommended for `base`/`small` Whisper models) and persistent disk storage.
+
+### Option 1: Production VPS / Cloud VM with Docker + Nginx (Recommended)
+
+Works on **AWS EC2, DigitalOcean Droplet, Hetzner, Linode, or Azure VM** (Ubuntu 22.04/24.04 with Docker installed).
+
+1. **Clone the repo on your server**:
+   ```bash
+   git clone <your-repo-url>
+   cd Clipora-AI
+   ```
+
+2. **Create a root `.env` file with production secrets**:
+   ```bash
+   cat << 'EOF' > .env
+   AUTH_SECRET_KEY=$(openssl rand -hex 32)
+   CORS_ORIGINS=https://your-domain.com,http://your-server-ip
+   WHISPER_MODEL_SIZE=base
+   MONGODB_URI=mongodb://mongodb:27017
+   MONGODB_DB=clipora_ai
+   EOF
+   ```
+
+3. **Build and start the production stack** ([docker-compose.prod.yml](docker-compose.prod.yml)):
+   ```bash
+   docker compose -f docker-compose.prod.yml up -d --build
+   ```
+   This starts:
+   - `mongodb` with persistent `mongo_data` volume and healthcheck
+   - `backend` (FastAPI + FFmpeg + Whisper + NLP) with persistent `clipora_storage` and HuggingFace `hf_cache` volumes
+   - `frontend` ([frontend/Dockerfile.prod](frontend/Dockerfile.prod) + [frontend/nginx.conf](frontend/nginx.conf)) serving the compiled React static bundle on port `80` with `2048M` upload limit and unbuffered SSE proxy for `/api/`
+
+4. **Enable HTTPS (SSL)**:
+   Put **Caddy**, **Certbot + host Nginx**, or **Cloudflare Proxy** in front of port `80` for automatic Let's Encrypt TLS certificates, and ensure your domain is listed in `CORS_ORIGINS`.
+
+5. **Verify deployment**:
+   ```bash
+   docker compose -f docker-compose.prod.yml ps
+   curl https://your-domain.com/api/health
+   ```
+
+---
+
+### Option 2: Deploy on Render (Backend + Frontend + MongoDB Atlas)
+
+Render does not host MongoDB natively, so pair **MongoDB Atlas** with two Render services (**Docker Web Service** for FastAPI + **Static Site** for React). You can configure them via the included [render.yaml](render.yaml) Blueprint or manually in the Render Dashboard below.
+
+> **Important Instance Sizing Note**: Render's Free / Starter (`512 MB` RAM) plans are too small for `PyTorch + Faster-Whisper + SentenceTransformers + FFmpeg` and will hit out-of-memory errors. Use **Standard (`2 GB` RAM)** with `WHISPER_MODEL_SIZE=tiny` (or **Pro `4 GB+`** for `WHISPER_MODEL_SIZE=base`) and attach a **Persistent Disk** so uploads, rendered shorts, and model weights persist.
+
+#### Step 1 — Create MongoDB Database (MongoDB Atlas)
+1. Create a free M0 cluster on [MongoDB Atlas](https://www.mongodb.com/atlas).
+2. In **Database Access**, create a database username & password.
+3. In **Network Access**, add `0.0.0.0/0` so Render's dynamic IPs can connect.
+4. Copy your connection string (`mongodb+srv://<user>:<password>@cluster0.xxxxx.mongodb.net/?retryWrites=true&w=majority`).
+
+#### Step 2 — Deploy Backend on Render (Web Service)
+1. Push your code to GitHub / GitLab.
+2. In Render Dashboard, click **New +** → **Web Service** → select your repository.
+3. Configure service settings:
+   - **Name**: `clipora-ai-backend`
+   - **Root Directory**: `backend`
+   - **Language / Runtime**: `Docker` (uses [backend/Dockerfile](backend/Dockerfile), automatically binds Render's `$PORT`)
+   - **Instance Type**: `Standard` (`2 GB RAM`) or higher
+   - **Health Check Path**: `/health`
+4. Under **Disks**, click **Add Disk**:
+   - **Name**: `clipora-storage`
+   - **Mount Path**: `/app/storage`
+   - **Size**: `20 GB` (or larger for heavy video uploads)
+5. Under **Environment Variables**, add:
+   - `MONGODB_URI` = `<your MongoDB Atlas connection string>`
+   - `MONGODB_DB` = `clipora_ai`
+   - `STORAGE_DIR` = `/app/storage`
+   - `HF_HOME` = `/app/storage/.hf_cache` *(caches Whisper & NLP weights on disk across deploys)*
+   - `AUTH_SECRET_KEY` = `<long random secret string>`
+   - `WHISPER_MODEL_SIZE` = `tiny` *(recommended on 2 GB RAM; use `base` on 4 GB+)*
+   - `MIN_VIDEO_DURATION_SECONDS` = `10`
+   - `MAX_VIDEO_DURATION_SECONDS` = `1200`
+   - `CORS_ORIGINS` = `http://localhost:5173` *(update in Step 4 after frontend URL is created)*
+6. Click **Deploy Web Service**. Once live, copy its URL (e.g. `https://clipora-ai-backend.onrender.com`) and verify `https://clipora-ai-backend.onrender.com/api/health`.
+
+#### Step 3 — Deploy Frontend on Render (Static Site)
+1. In Render Dashboard, click **New +** → **Static Site** → select the same repository.
+2. Configure static site settings:
+   - **Name**: `clipora-ai-frontend`
+   - **Root Directory**: `frontend`
+   - **Build Command**: `npm install && npm run build`
+   - **Publish Directory**: `dist`
+3. Under **Environment Variables**, add:
+   - `VITE_API_BASE_URL` = `https://clipora-ai-backend.onrender.com` *(your Step 2 backend URL, no trailing slash)*
+4. Click **Deploy Static Site**.
+5. Once created, open **Redirects/Rewrites** in the Static Site settings and add an SPA rewrite rule so direct page refreshes work:
+   - **Source**: `/*`
+   - **Destination**: `/index.html`
+   - **Action**: `Rewrite`
+
+#### Step 4 — Connect CORS & Verify
+1. Copy your frontend Render URL (e.g. `https://clipora-ai-frontend.onrender.com`).
+2. Go back to `clipora-ai-backend` → **Environment** → update `CORS_ORIGINS` to `https://clipora-ai-frontend.onrender.com` (and redeploy/restart).
+3. Open your frontend URL, create an account on the Login page, and test uploading or importing a video!
+
+> **Alternative**: Click **New +** → **Blueprint** in Render and select this repository to import [render.yaml](render.yaml) automatically, then fill in `MONGODB_URI`, `CORS_ORIGINS`, and `VITE_API_BASE_URL`.
+
+---
+
+### Option 3: Split Hosting (Vercel/Netlify Frontend + Railway/Fly.io Backend)
+
+- **Backend**: Deploy `backend/` using [backend/Dockerfile](backend/Dockerfile) with `/app/storage` mounted on a persistent volume and `MONGODB_URI`, `AUTH_SECRET_KEY`, `CORS_ORIGINS` configured.
+- **Frontend (Vercel / Netlify)**: Set Root Directory `frontend`, Build Command `npm run build`, Output Directory `dist`, env `VITE_API_BASE_URL=https://your-backend-url` ([frontend/vercel.json](frontend/vercel.json) already configures SPA rewrites).
+
+---
+
+### Production Checklist
+
+- **Replace `AUTH_SECRET_KEY`**: Never deploy with the default development secret.
+- **Set strict `CORS_ORIGINS`**: Include your exact HTTPS frontend origin(s).
+- **Upload limits & timeouts**: If placing another reverse proxy (Cloudflare/ALB/Nginx) in front of the backend, set max upload body size `>= 2G` and proxy read timeout `>= 3600s` for long AI jobs & HD ZIP renders.
+- **Persistent volumes**: Mount `/app/storage` and `/data/db` on persistent storage so uploaded videos, generated shorts, and MongoDB data survive restarts.

@@ -10,7 +10,7 @@ import {
   UploadCloud,
   X,
 } from "lucide-react";
-import { api, CATEGORY_META, formatTimestampPrecise } from "../api/client";
+import { api, CATEGORY_META, formatTimestampPrecise, resolveApiUrl } from "../api/client";
 import { EmptyState } from "../components/common/EmptyState";
 import { ErrorBanner } from "../components/common/ErrorBanner";
 import { CategoryBadge } from "../components/layout/StatusBadge";
@@ -213,7 +213,7 @@ export function GalleryPage() {
               <div>
                 <div className="relative h-44 bg-black">
                   <img
-                    src={clip.thumbnail_url}
+                    src={resolveApiUrl(clip.thumbnail_url)}
                     alt={clip.title}
                     className="h-full w-full object-cover opacity-90"
                   />
@@ -327,8 +327,8 @@ export function GalleryPage() {
             </div>
 
             <ClipPreviewPlayer
-              sourceUrl={video.source_url}
-              fallbackPreviewUrl={previewClip.preview_url}
+              sourceUrl={resolveApiUrl(video.source_url)}
+              fallbackPreviewUrl={resolveApiUrl(previewClip.preview_url)}
               trimStart={previewClip.trim_start}
               trimEnd={previewClip.trim_end}
               aspectRatio={previewClip.aspect_ratio}

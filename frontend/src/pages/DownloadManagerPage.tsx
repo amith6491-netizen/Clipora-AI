@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Archive, CheckCircle2, Download, Film, Loader2 } from "lucide-react";
-import { api, formatBytes } from "../api/client";
+import { api, formatBytes, resolveApiUrl } from "../api/client";
 import { EmptyState } from "../components/common/EmptyState";
 import { ErrorBanner } from "../components/common/ErrorBanner";
 import type { Clip, ExportQuality, ExportRecord, VideoProject } from "../types";
@@ -55,7 +55,7 @@ export function DownloadManagerPage() {
       const record = await api.exportZip(selectedVideoId, quality);
       setExportsList((prev) => [record, ...prev]);
       const a = document.createElement("a");
-      a.href = record.download_url;
+      a.href = resolveApiUrl(record.download_url);
       a.download = record.file_name;
       document.body.appendChild(a);
       a.click();
@@ -158,7 +158,7 @@ export function DownloadManagerPage() {
                   >
                     <div className="flex items-center gap-3.5 min-w-0">
                       <img
-                        src={clip.thumbnail_url}
+                        src={resolveApiUrl(clip.thumbnail_url)}
                         alt={clip.title}
                         className="h-12 w-16 shrink-0 rounded-lg border border-white/10 object-cover"
                       />
@@ -229,7 +229,7 @@ export function DownloadManagerPage() {
                       </span>
                     </div>
                     <a
-                      href={ex.download_url}
+                      href={resolveApiUrl(ex.download_url)}
                       className="inline-flex items-center gap-1 rounded-lg bg-white/5 px-3 py-1.5 font-medium text-cyan-300 hover:bg-white/10"
                     >
                       <Download className="h-3.5 w-3.5" />

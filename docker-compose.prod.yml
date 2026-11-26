@@ -1,0 +1,51 @@
+services:
+  mongodb:
+    image: mongo:8.0
+    container_name: clipora-mongodb
+    restart: always
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+    container_name: clipora-backend
+    restart: always
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    expose:
+      - "8000"
+    environment:
+      MONGODB_URI: ${MONGODB_URI:-mongodb://mongodb:27017}
+      MONGODB_DB: ${MONGODB_DB:-clipora_ai}
+      STORAGE_DIR: /app/storage
+      AUTH_SECRET_KEY: ${AUTH_SECRET_KEY:-change-this-to-a-long-random-secret}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost,https://localhost}
+      WHISPER_MODEL_SIZE: ${WHISPER_MODEL_SIZE:-base}
+      MIN_VIDEO_DURATION_SECONDS: ${MIN_VIDEO_DURATION_SECONDS:-10}
+      MAX_VIDEO_DURATION_SECONDS: ${MAX_VIDEO_DURATION_SECONDS:-1200}
+    volumes:
+      - clipora_storage:/app/storage
+      - hf_cache:/root/.cache/huggingface
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+    container_name: clipora-frontend
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+
+volumes:
+  mongo_data:
+  clipora_storage:
+  hf_cache:

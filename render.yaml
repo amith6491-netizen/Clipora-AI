@@ -1,0 +1,45 @@
+services:
+  - type: web
+    name: clipora-ai-backend
+    runtime: docker
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    plan: standard
+    healthCheckPath: /health
+    disk:
+      name: clipora-storage
+      mountPath: /app/storage
+      sizeGB: 20
+    envVars:
+      - key: MONGODB_URI
+        sync: false
+      - key: MONGODB_DB
+        value: clipora_ai
+      - key: STORAGE_DIR
+        value: /app/storage
+      - key: HF_HOME
+        value: /app/storage/.hf_cache
+      - key: AUTH_SECRET_KEY
+        generateValue: true
+      - key: CORS_ORIGINS
+        sync: false
+      - key: WHISPER_MODEL_SIZE
+        value: tiny
+      - key: MIN_VIDEO_DURATION_SECONDS
+        value: "10"
+      - key: MAX_VIDEO_DURATION_SECONDS
+        value: "1200"
+
+  - type: web
+    name: clipora-ai-frontend
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_BASE_URL
+        sync: false

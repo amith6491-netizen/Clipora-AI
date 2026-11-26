@@ -17,6 +17,13 @@ import type {
 } from "../types";
 
 const AUTH_STORAGE_KEY = "clipora_auth_token";
+export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
+
+export function resolveApiUrl(path: string): string {
+  if (!path) return path;
+  if (/^https?:\/\//i.test(path)) return path;
+  return `${API_BASE_URL}${path.startsWith("/") ? path : `/${path}`}`;
+}
 
 export function getAuthToken(): string | null {
   try {
@@ -53,7 +60,7 @@ async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
   if (token && !headers.has("Authorization")) {
     headers.set("Authorization", `Bearer ${token}`);
   }
-  const res = await fetch(url, { ...init, headers });
+  const res = await fetch(resolveApiUrl(url), { ...init, headers });
   if (!res.ok) {
     let detail = `Request failed with status ${res.status}`;
     try {
@@ -151,7 +158,7 @@ export function uploadVideoWithProgress(opts: UploadVideoOptions): Promise<Video
       opts.signal.addEventListener("abort", () => xhr.abort(), { once: true });
     }
 
-    xhr.open("POST", "/api/videos/upload");
+    xhr.open("POST", resolveApiUrl("/api/videos/upload"));
     const token = getAuthToken();
     if (token) {
       xhr.setRequestHeader("Authorization", `Bearer ${token}`);
@@ -249,7 +256,7 @@ export const api = {
   getClipDownloadUrl: (clipId: string, quality: ExportQuality, aspectRatio?: AspectRatio) => {
     const params = new URLSearchParams({ quality });
     if (aspectRatio) params.set("aspect_ratio", aspectRatio);
-    return `/api/clips/${clipId}/download?${params.toString()}`;
+    return resolveApiUrl(`/api/clips/${clipId}/download?${params.toString()}`);
   },
 };
 
@@ -258,7 +265,7 @@ export function subscribeToProgress(
   onEvent: (payload: ProgressEventPayload) => void,
   onError?: () => void
 ): () => void {
-  const es = new EventSource(`/api/videos/${videoId}/progress`);
+  const es = new EventSource(resolveApiUrl(`/api/videos/${videoId}/progress`));
   es.onmessage = (ev) => {
     try {
       const parsed = JSON.parse(ev.data) as ProgressEventPayload;

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, Check, Download, Loader2, Save } from "lucide-react";
-import { api } from "../api/client";
+import { api, resolveApiUrl } from "../api/client";
 import { ErrorBanner } from "../components/common/ErrorBanner";
 import { StyleControls } from "../components/editor/StyleControls";
 import { SubtitleEditor } from "../components/editor/SubtitleEditor";
@@ -195,8 +195,8 @@ export function EditorPage() {
         {/* Left: Live Interactive Player + AI Telemetry */}
         <div className="lg:col-span-5 space-y-4">
           <ClipPreviewPlayer
-            sourceUrl={video.source_url}
-            fallbackPreviewUrl={clip.preview_url}
+            sourceUrl={resolveApiUrl(video.source_url)}
+            fallbackPreviewUrl={resolveApiUrl(clip.preview_url)}
             trimStart={trimStart}
             trimEnd={trimEnd}
             aspectRatio={aspectRatio}
