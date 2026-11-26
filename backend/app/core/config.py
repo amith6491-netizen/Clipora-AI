@@ -46,6 +46,10 @@ class Settings(BaseSettings):
     ffmpeg_path: str | None = None
     ffprobe_path: str | None = None
 
+    # Optional yt-dlp network / Instagram session configuration
+    ytdlp_proxy: str | None = None
+    instagram_cookies_file: Path | None = None
+
     @property
     def cors_origin_list(self) -> List[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
@@ -78,6 +82,10 @@ class Settings(BaseSettings):
     def exports_dir(self) -> Path:
         return self.resolved_storage_dir / "exports"
 
+    @property
+    def instagram_dir(self) -> Path:
+        return self.resolved_storage_dir / "instagram"
+
     def ensure_dirs(self) -> None:
         for directory in (
             self.resolved_storage_dir,
@@ -87,6 +95,7 @@ class Settings(BaseSettings):
             self.subtitles_dir,
             self.renders_dir,
             self.exports_dir,
+            self.instagram_dir,
         ):
             directory.mkdir(parents=True, exist_ok=True)
 

@@ -5,6 +5,7 @@ import type {
   ClipUpdatePayload,
   ExportQuality,
   ExportRecord,
+  InstagramDownload,
   MomentCategory,
   ProgressEventPayload,
   SubtitlePreset,
@@ -258,6 +259,16 @@ export const api = {
     if (aspectRatio) params.set("aspect_ratio", aspectRatio);
     return resolveApiUrl(`/api/clips/${clipId}/download?${params.toString()}`);
   },
+
+  listInstagramDownloads: () => requestJson<InstagramDownload[]>("/api/instagram"),
+  downloadInstagramVideo: (url: string) =>
+    requestJson<InstagramDownload>("/api/instagram/download", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url }),
+    }),
+  deleteInstagramDownload: (itemId: string) =>
+    requestJson<void>(`/api/instagram/${itemId}`, { method: "DELETE" }),
 };
 
 export function subscribeToProgress(

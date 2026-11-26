@@ -118,8 +118,9 @@ export interface VideoProject {
   height: number;
   fps: number;
   has_audio: boolean;
-  source_type: "upload" | "youtube";
+  source_type: "upload" | "youtube" | "instagram";
   youtube_url?: string | null;
+  instagram_url?: string | null;
   status: VideoStatus;
   progress: number;
   current_stage: string;
@@ -184,6 +185,26 @@ export interface AuthResponse {
   access_token: string;
   token_type: "bearer";
   user: User;
+}
+
+export interface InstagramDownload {
+  id: string;
+  url: string;
+  shortcode: string;
+  title: string;
+  author: string;
+  duration: number;
+  width: number;
+  height: number;
+  file_name: string;
+  file_size_bytes: number;
+  preview_url: string;
+  download_url: string;
+  thumbnail_url: string;
+  video_id?: string | null;
+  clip_id?: string | null;
+  edit_url?: string | null;
+  created_at: string;
 }
 
 export interface TranscriptSegment {

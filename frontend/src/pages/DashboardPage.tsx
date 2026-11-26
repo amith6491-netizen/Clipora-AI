@@ -5,6 +5,7 @@ import {
   Clock,
   Film,
   FolderOpen,
+  Instagram,
   Plus,
   Sparkles,
   StopCircle,
@@ -196,6 +197,11 @@ export function DashboardPage() {
                         <Youtube className="h-3.5 w-3.5" />
                         YouTube
                       </span>
+                    ) : video.source_type === "instagram" ? (
+                      <span className="inline-flex items-center gap-1 text-fuchsia-300">
+                        <Instagram className="h-3.5 w-3.5" />
+                        Instagram
+                      </span>
                     ) : (
                       <span className="uppercase">{video.format_ext.replace(".", "")}</span>
                     )}
@@ -218,6 +224,10 @@ export function DashboardPage() {
                     <p className="line-clamp-2 text-xs text-rose-300">{video.error_message || "Processing failed."}</p>
                   ) : video.status === "cancelled" ? (
                     <p className="text-xs text-slate-400">Processing cancelled by user.</p>
+                  ) : video.source_type === "instagram" ? (
+                    <p className="text-xs text-slate-400">
+                      <span className="font-semibold text-slate-200">{video.clips_count}</span> editable HD video ready in Studio
+                    </p>
                   ) : (
                     <p className="text-xs text-slate-400">
                       <span className="font-semibold text-slate-200">{video.clips_count}</span> shorts •{" "}

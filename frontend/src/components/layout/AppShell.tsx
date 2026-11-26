@@ -6,6 +6,7 @@ import {
   Cpu,
   Download,
   Film,
+  Instagram,
   LayoutDashboard,
   LayoutGrid,
   LogOut,
@@ -60,6 +61,12 @@ export function AppShell({ children }: AppShellProps) {
       label: "Upload / YouTube",
       icon: UploadCloud,
       matches: (p: string) => p === "/upload",
+    },
+    {
+      to: "/instagram",
+      label: "Instagram Downloader",
+      icon: Instagram,
+      matches: (p: string) => p === "/instagram",
     },
     {
       to: "/processing",

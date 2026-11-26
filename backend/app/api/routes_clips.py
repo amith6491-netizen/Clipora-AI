@@ -15,13 +15,17 @@ from app.models.schemas import (
     RenderedVariant,
     TranscriptSegment,
 )
+from app.services.audio_service import extract_wav_audio
 from app.services.render_service import (
     build_variant_key,
     compute_render_signature,
     render_clip_mp4,
 )
 from app.services.storage_service import get_source_video_path
-from app.services.transcription_service import build_subtitle_cues_from_segments
+from app.services.transcription_service import (
+    build_subtitle_cues_from_segments,
+    transcribe_audio_with_whisper,
+)
 
 router = APIRouter(tags=["clips"])
 
@@ -87,11 +91,14 @@ async def update_clip(clip_id: str, payload: ClipUpdateIn, request: Request) -> 
             detail="Trim end time must be greater than trim start time.",
         )
 
+    is_full_video = video.get("source_type") == "instagram"
+    min_dur = min(1.0, video_duration) if is_full_video else 3.0
+    max_dur = max(45.0, video_duration) if is_full_video else 45.0
     new_dur = round(new_end - new_start, 3)
-    if new_dur < 3.0 or new_dur > 45.0:
+    if new_dur < min_dur or new_dur > max_dur:
         raise HTTPException(
             status_code=422,
-            detail="Clip duration after trimming must be between 3 and 45 seconds.",
+            detail=f"Clip duration after trimming must be between {min_dur:.1f} and {max_dur:.1f} seconds.",
         )
 
     updates: dict = {
@@ -115,21 +122,51 @@ async def update_clip(clip_id: str, payload: ClipUpdateIn, request: Request) -> 
     return serialize_clip(updated)
 
 
+def _transcribe_video_on_demand(
+    video: dict,
+    settings: Settings,
+) -> tuple[list[dict], str]:
+    """Extract WAV and run Faster-Whisper on demand for videos imported without pre-analysis."""
+    source_path = get_source_video_path(settings, video["_id"], video["format_ext"])
+    if not source_path.exists():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Source video file missing.")
+    wav_path = settings.audio_dir / f"{video['_id']}.wav"
+    extract_wav_audio(source_path, wav_path, settings)
+    segments, language = transcribe_audio_with_whisper(wav_path, float(video["duration"]), settings)
+    return [s.model_dump() for s in segments], language
+
+
 @router.post("/api/clips/{clip_id}/auto-captions", response_model=ClipOut)
 async def regenerate_auto_captions(clip_id: str, request: Request) -> ClipOut:
     db: DatabaseManager = request.app.state.db
+    settings: Settings = request.app.state.settings
     doc = await db.get_clip(clip_id)
     if not doc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Clip not found.")
 
     artifacts = await db.get_analysis_artifacts(doc["video_id"])
-    if not artifacts or not artifacts.get("segments"):
-        raise HTTPException(
-            status_code=422,
-            detail="Transcript segments are not available for auto-caption generation.",
+    raw_segments = artifacts.get("segments") if artifacts else None
+    if not raw_segments:
+        video = await db.get_video(doc["video_id"])
+        if not video:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Parent video project not found.")
+        if not video.get("has_audio", True):
+            raise HTTPException(
+                status_code=422,
+                detail="This video has no audio track to generate captions from.",
+            )
+        raw_segments, language = await asyncio.to_thread(_transcribe_video_on_demand, video, settings)
+        await db.save_analysis_artifacts(
+            doc["video_id"],
+            {"language": language, "segments": raw_segments, "scenes": []},
         )
+        if not raw_segments:
+            raise HTTPException(
+                status_code=422,
+                detail="No spoken dialogue was detected in this video for auto-captions.",
+            )
 
-    segments = [TranscriptSegment.model_validate(s) for s in artifacts["segments"]]
+    segments = [TranscriptSegment.model_validate(s) for s in raw_segments]
     cues = build_subtitle_cues_from_segments(
         segments=segments,
         clip_start=float(doc["trim_start"]),

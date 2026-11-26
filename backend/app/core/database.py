@@ -54,6 +54,7 @@ class DatabaseManager:
             await self.clips.create_index([("video_id", ASCENDING), ("engagement_score", DESCENDING)])
             await self.analysis_artifacts.create_index([("video_id", ASCENDING)], unique=True)
             await self.exports.create_index([("video_id", ASCENDING), ("created_at", DESCENDING)])
+            await self.instagram_downloads.create_index([("user_id", ASCENDING), ("created_at", DESCENDING)])
         except Exception:
             # Startup should remain resilient even if MongoDB starts slightly after the API
             pass
@@ -82,6 +83,11 @@ class DatabaseManager:
     def exports(self):
         assert self.db is not None
         return self.db["exports"]
+
+    @property
+    def instagram_downloads(self):
+        assert self.db is not None
+        return self.db["instagram_downloads"]
 
     async def create_user(self, doc: dict[str, Any]) -> None:
         await self.users.insert_one(doc)
@@ -159,3 +165,21 @@ class DatabaseManager:
 
     async def get_export(self, export_id: str) -> dict[str, Any] | None:
         return await self.exports.find_one({"_id": export_id})
+
+    async def insert_instagram_download(self, doc: dict[str, Any]) -> None:
+        await self.instagram_downloads.insert_one(doc)
+
+    async def list_instagram_downloads(
+        self,
+        limit: int = 50,
+        user_id: str | None = None,
+    ) -> list[dict[str, Any]]:
+        query = {"user_id": user_id} if user_id else {}
+        cursor = self.instagram_downloads.find(query).sort("created_at", DESCENDING).limit(limit)
+        return await cursor.to_list(length=limit)
+
+    async def get_instagram_download(self, item_id: str) -> dict[str, Any] | None:
+        return await self.instagram_downloads.find_one({"_id": item_id})
+
+    async def delete_instagram_download(self, item_id: str) -> None:
+        await self.instagram_downloads.delete_one({"_id": item_id})

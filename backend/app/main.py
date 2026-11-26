@@ -9,6 +9,7 @@ from app.api.routes_auth import router as auth_router
 from app.api.routes_clips import router as clips_router
 from app.api.routes_exports import router as exports_router
 from app.api.routes_health import router as health_router
+from app.api.routes_instagram import router as instagram_router
 from app.api.routes_videos import router as videos_router
 from app.core.config import Settings, get_settings
 from app.core.database import DatabaseManager
@@ -58,6 +59,7 @@ def create_app(custom_settings: Settings | None = None) -> FastAPI:
     app.include_router(videos_router)
     app.include_router(clips_router)
     app.include_router(exports_router)
+    app.include_router(instagram_router)
     return app
 
 

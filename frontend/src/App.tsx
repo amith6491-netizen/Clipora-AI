@@ -5,6 +5,7 @@ import { DashboardPage } from "./pages/DashboardPage";
 import { DownloadManagerPage } from "./pages/DownloadManagerPage";
 import { EditorPage } from "./pages/EditorPage";
 import { GalleryPage } from "./pages/GalleryPage";
+import { InstagramDownloaderPage } from "./pages/InstagramDownloaderPage";
 import { LandingPage } from "./pages/LandingPage";
 import { LoginPage } from "./pages/LoginPage";
 import { ProcessingPage } from "./pages/ProcessingPage";
@@ -33,6 +34,16 @@ export function App() {
               <ProtectedRoute>
                 <AppShell>
                   <UploadPage />
+                </AppShell>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/instagram"
+            element={
+              <ProtectedRoute>
+                <AppShell>
+                  <InstagramDownloaderPage />
                 </AppShell>
               </ProtectedRoute>
             }

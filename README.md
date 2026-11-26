@@ -5,7 +5,8 @@ Clipora AI is a full-stack AI-powered web application that converts videos (up t
 ## Core Capabilities
 
 - **Validated Video Upload & YouTube Link Import**: Drag-and-drop uploader supporting **MP4, MOV, MKV, and WebM**, or paste a **YouTube URL** (`yt-dlp` import), with live upload/download progress, preview, and `ffprobe` validation enforcing videos **under 20 minutes** (`10–1200s`).
-- **Studio Authentication**: Built-in **Login / Create Account** page backed by MongoDB (`users`) and signed JWT tokens, plus sidebar navigation across **Dashboard**, **Upload / YouTube**, **AI Analysis Process**, **Generated Shorts Gallery**, and **Download Manager**.
+- **Direct Instagram Reel / Video HD Downloader**: Paste any public **Instagram Reel, video, or post URL** (`/reel/`, `/p/`, `/tv/`, `/share/reel/`) to download the original video in the highest available **HD MP4** quality directly—skipping AI short generation—with instant inline playback preview, one-click MP4 download, and recent download history.
+- **Studio Authentication**: Built-in **Login / Create Account** page backed by MongoDB (`users`) and signed JWT tokens, plus sidebar navigation across **Dashboard**, **Upload / YouTube**, **Instagram Downloader**, **AI Analysis Process**, **Generated Shorts Gallery**, and **Download Manager**.
 - **Real Multimodal AI Analysis Pipeline**:
   - **FFmpeg** audio extraction (`16kHz` mono PCM WAV) & poster/thumbnail generation.
   - **Faster-Whisper** speech-to-text transcription with word-level timestamps and VAD filtering.
@@ -199,8 +200,9 @@ docker compose up --build
 
 ## Using Clipora AI (Step-by-Step)
 
-1. Open **http://localhost:5173** and click **Create Shorts** (or go to **Upload Video**).
-2. Drag and drop a video **under 20 minutes** in **MP4, MOV, MKV, or WebM** format, adjust target shorts count (`5–15`), aspect ratio (`9:16`, `16:9`, `1:1`), and quality (`720p` / `1080p`), then click **Upload & Start AI Analysis**.
+1. Open **http://localhost:5173** and click **Create Shorts** (or go to **Upload / YouTube**).
+2. Drag and drop a video **under 20 minutes** in **MP4, MOV, MKV, or WebM** format (or paste a YouTube link), adjust target shorts count (`5–15`), aspect ratio (`9:16`, `16:9`, `1:1`), and quality (`720p` / `1080p`), then click **Upload & Start AI Analysis**.
+   - **To download an Instagram Reel/video directly without making shorts**: Open **Instagram Downloader** in the sidebar (or switch to the **Instagram Reel / Video** tab on the Upload page), paste the Instagram URL, and click **Fetch & Download HD** to save the high-quality MP4 immediately.
 3. Monitor real-time pipeline stages on the **AI Processing** page (Audio extraction -> Faster-Whisper transcription -> PySceneDetect & OpenCV -> Acoustic energy -> NLP ranking -> Clip generation -> FFmpeg HD rendering).
 4. Browse and filter clips in the **Generated Shorts Gallery** (`Interesting`, `Funny`, `Important`, `Motivational`, `Educational`, `Engaging`).
 5. Click **Edit** on any short to trim start/end bounds, toggle or regenerate auto-captions, edit subtitle cues and colors/presets, switch aspect ratios, and render **720p** / **1080p** MP4s.

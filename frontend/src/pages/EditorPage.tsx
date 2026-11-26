@@ -141,11 +141,11 @@ export function EditorPage() {
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-white/10 bg-[#0d121f] p-4">
         <div className="flex flex-wrap items-center gap-3 min-w-0 flex-1">
           <Link
-            to={`/videos/${video.id}/shorts`}
+            to={video.source_type === "instagram" ? "/instagram" : `/videos/${video.id}/shorts`}
             className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 px-3 py-1.5 text-xs font-medium text-slate-300 hover:bg-white/5"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
-            Gallery
+            {video.source_type === "instagram" ? "Instagram" : "Gallery"}
           </Link>
           <input
             type="text"
@@ -208,8 +208,14 @@ export function EditorPage() {
 
           <div className="rounded-2xl border border-white/10 bg-[#0d121f] p-4 space-y-2">
             <div className="flex items-center justify-between text-xs">
-              <span className="font-semibold text-white">AI Engagement Score</span>
-              <span className="font-mono font-bold text-violet-300">{clip.engagement_score}/100</span>
+              <span className="font-semibold text-white">
+                {video.source_type === "instagram" ? "Instagram HD Source" : "AI Engagement Score"}
+              </span>
+              <span className="font-mono font-bold text-violet-300">
+                {video.source_type === "instagram"
+                  ? `${video.width}×${video.height}`
+                  : `${clip.engagement_score}/100`}
+              </span>
             </div>
             <p className="text-xs text-slate-400">{clip.ai_reason}</p>
           </div>
@@ -223,6 +229,7 @@ export function EditorPage() {
             originalEnd={clip.original_end}
             trimStart={trimStart}
             trimEnd={trimEnd}
+            isFullVideo={video.source_type === "instagram"}
             onChange={(s, e) => {
               setTrimStart(s);
               setTrimEnd(e);

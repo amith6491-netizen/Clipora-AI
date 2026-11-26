@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   CheckCircle2,
+  Instagram,
   Link2,
   Loader2,
   Sliders,
@@ -13,13 +14,14 @@ import {
 import { api, formatDuration, uploadVideoWithProgress } from "../api/client";
 import { ErrorBanner } from "../components/common/ErrorBanner";
 import { DropZoneUploader } from "../components/video/DropZoneUploader";
+import { InstagramDownloaderPanel } from "../components/video/InstagramDownloaderPanel";
 import type { AspectRatio, ExportQuality, YouTubePreview } from "../types";
 
 export function UploadPage() {
   const navigate = useNavigate();
   const abortRef = useRef<AbortController | null>(null);
 
-  const [sourceMode, setSourceMode] = useState<"file" | "youtube">("file");
+  const [sourceMode, setSourceMode] = useState<"file" | "youtube" | "instagram">("file");
   const [minDurationSec, setMinDurationSec] = useState(10);
   const [maxDurationSec, setMaxDurationSec] = useState(1200);
 
@@ -181,12 +183,12 @@ export function UploadPage() {
       <div>
         <h1 className="text-2xl font-bold text-white">Upload or Import Video</h1>
         <p className="mt-1 text-sm text-slate-400">
-          Upload a local file (MP4, MOV, MKV, WebM) or paste a YouTube link under {Math.round(maxDurationSec / 60)} minutes. Clipora AI will transcribe, detect scenes, and generate 5–15 engaging shorts.
+          Upload a local file (MP4, MOV, MKV, WebM) or paste a YouTube link under {Math.round(maxDurationSec / 60)} minutes to generate AI shorts — or switch to Instagram Reel / Video to download directly in high quality.
         </p>
       </div>
 
       {/* Source Mode Switcher */}
-      <div className="inline-flex rounded-2xl border border-white/10 bg-[#0d121f] p-1.5">
+      <div className="inline-flex flex-wrap gap-1 rounded-2xl border border-white/10 bg-[#0d121f] p-1.5">
         <button
           type="button"
           disabled={submitting}
@@ -219,11 +221,31 @@ export function UploadPage() {
           <Youtube className="h-4 w-4" />
           Paste YouTube Link
         </button>
+        <button
+          type="button"
+          disabled={submitting}
+          onClick={() => {
+            setSourceMode("instagram");
+            setError(null);
+          }}
+          className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition-colors ${
+            sourceMode === "instagram"
+              ? "bg-gradient-to-r from-pink-500 to-amber-500 text-white shadow"
+              : "text-slate-400 hover:text-white"
+          }`}
+        >
+          <Instagram className="h-4 w-4" />
+          Instagram Reel / Video
+        </button>
       </div>
 
-      <ErrorBanner message={error} onDismiss={() => setError(null)} />
+      {sourceMode === "instagram" ? (
+        <InstagramDownloaderPanel />
+      ) : (
+        <>
+          <ErrorBanner message={error} onDismiss={() => setError(null)} />
 
-      <form onSubmit={handleSubmit} className="grid gap-6 lg:grid-cols-3">
+          <form onSubmit={handleSubmit} className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
           {sourceMode === "file" ? (
             <DropZoneUploader
@@ -417,7 +439,9 @@ export function UploadPage() {
               : "Import YouTube & Start AI Analysis"}
           </button>
         </div>
-      </form>
+          </form>
+        </>
+      )}
     </div>
   );
 }

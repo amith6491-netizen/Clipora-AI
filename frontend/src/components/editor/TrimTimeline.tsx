@@ -7,6 +7,7 @@ interface TrimTimelineProps {
   originalEnd: number;
   trimStart: number;
   trimEnd: number;
+  isFullVideo?: boolean;
   onChange: (newStart: number, newEnd: number) => void;
 }
 
@@ -16,19 +17,21 @@ export function TrimTimeline({
   originalEnd,
   trimStart,
   trimEnd,
+  isFullVideo = false,
   onChange,
 }: TrimTimelineProps) {
   const windowMin = Math.max(0, originalStart - 15);
   const windowMax = Math.min(videoDuration, originalEnd + 15);
   const clipDuration = Math.max(0, trimEnd - trimStart);
+  const minGap = isFullVideo ? Math.min(1.0, Math.max(0.5, videoDuration * 0.5)) : 3.0;
 
   const handleStartSlider = (val: number) => {
-    const clamped = Math.min(val, trimEnd - 3.0);
+    const clamped = Math.min(val, trimEnd - minGap);
     onChange(Number(Math.max(0, clamped).toFixed(2)), trimEnd);
   };
 
   const handleEndSlider = (val: number) => {
-    const clamped = Math.max(val, trimStart + 3.0);
+    const clamped = Math.max(val, trimStart + minGap);
     onChange(trimStart, Number(Math.min(videoDuration, clamped).toFixed(2)));
   };
 
@@ -48,7 +51,7 @@ export function TrimTimeline({
             onClick={() => onChange(originalStart, originalEnd)}
             className="rounded-lg border border-white/10 px-2.5 py-1 text-slate-300 hover:bg-white/5"
           >
-            Reset AI Bounds
+            {isFullVideo ? "Reset Full Length" : "Reset AI Bounds"}
           </button>
         </div>
       </div>
@@ -62,7 +65,7 @@ export function TrimTimeline({
           <input
             type="range"
             min={windowMin}
-            max={Math.max(windowMin + 0.5, trimEnd - 3.0)}
+            max={Math.max(windowMin + 0.1, trimEnd - minGap)}
             step={0.1}
             value={trimStart}
             onChange={(e) => handleStartSlider(parseFloat(e.target.value))}
@@ -77,7 +80,7 @@ export function TrimTimeline({
           </div>
           <input
             type="range"
-            min={Math.min(windowMax - 0.5, trimStart + 3.0)}
+            min={Math.min(windowMax - 0.1, trimStart + minGap)}
             max={windowMax}
             step={0.1}
             value={trimEnd}
@@ -88,7 +91,9 @@ export function TrimTimeline({
       </div>
 
       <p className="text-xs text-slate-400">
-        AI detected window: {formatTimestampPrecise(originalStart)} – {formatTimestampPrecise(originalEnd)}. Fine-tune bounds between 3s and 45s.
+        {isFullVideo
+          ? `Full source video: ${formatTimestampPrecise(originalStart)} – ${formatTimestampPrecise(originalEnd)}. Trim any section before exporting.`
+          : `AI detected window: ${formatTimestampPrecise(originalStart)} – ${formatTimestampPrecise(originalEnd)}. Fine-tune bounds between 3s and 45s.`}
       </p>
     </div>
   );

@@ -19,6 +19,7 @@ def serialize_video(doc: dict[str, Any]) -> VideoProjectOut:
         has_audio=bool(doc.get("has_audio", True)),
         source_type=doc.get("source_type", "upload"),
         youtube_url=doc.get("youtube_url"),
+        instagram_url=doc.get("instagram_url"),
         status=doc["status"],
         progress=float(doc.get("progress", 0.0)),
         current_stage=doc.get("current_stage", "uploaded"),

@@ -170,8 +170,9 @@ class VideoProjectOut(BaseModel):
     height: int
     fps: float
     has_audio: bool
-    source_type: Literal["upload", "youtube"] = "upload"
+    source_type: Literal["upload", "youtube", "instagram"] = "upload"
     youtube_url: str | None = None
+    instagram_url: str | None = None
     status: VideoStatus
     progress: float = Field(default=0.0, ge=0.0, le=100.0)
     current_stage: str = "uploaded"
@@ -210,6 +211,30 @@ class YouTubeImportIn(BaseModel):
     default_aspect_ratio: AspectRatio = "9:16"
     default_quality: ExportQuality = "1080p"
     auto_process: bool = True
+
+
+class InstagramDownloadIn(BaseModel):
+    url: str = Field(min_length=10, max_length=500)
+
+
+class InstagramDownloadOut(BaseModel):
+    id: str
+    url: str
+    shortcode: str
+    title: str
+    author: str
+    duration: float
+    width: int
+    height: int
+    file_name: str
+    file_size_bytes: int
+    preview_url: str
+    download_url: str
+    thumbnail_url: str
+    video_id: str | None = None
+    clip_id: str | None = None
+    edit_url: str | None = None
+    created_at: datetime
 
 
 class UserRegisterIn(BaseModel):
