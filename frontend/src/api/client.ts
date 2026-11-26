@@ -55,6 +55,16 @@ export class ApiError extends Error {
   }
 }
 
+function formatHttpError(status: number, parsedDetail?: string): string {
+  if (parsedDetail) return parsedDetail;
+  const isLocalHost =
+    typeof window !== "undefined" && ["localhost", "127.0.0.1"].includes(window.location.hostname);
+  if (status === 405 && !API_BASE_URL && !isLocalHost) {
+    return "API request reached the static frontend host instead of the backend (405 Method Not Allowed). Set VITE_API_BASE_URL to your Render backend URL in Environment Variables and trigger a fresh deploy.";
+  }
+  return `Request failed with status ${status}`;
+}
+
 async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
   const token = getAuthToken();
   const headers = new Headers(init?.headers);
@@ -63,18 +73,18 @@ async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
   }
   const res = await fetch(resolveApiUrl(url), { ...init, headers });
   if (!res.ok) {
-    let detail = `Request failed with status ${res.status}`;
+    let parsedDetail: string | undefined;
     try {
       const body = await res.json();
       if (typeof body?.detail === "string") {
-        detail = body.detail;
+        parsedDetail = body.detail;
       } else if (Array.isArray(body?.detail)) {
-        detail = body.detail.map((d: { msg?: string }) => d.msg || JSON.stringify(d)).join("; ");
+        parsedDetail = body.detail.map((d: { msg?: string }) => d.msg || JSON.stringify(d)).join("; ");
       }
     } catch {
       // keep default detail
     }
-    throw new ApiError(detail, res.status);
+    throw new ApiError(formatHttpError(res.status, parsedDetail), res.status);
   }
   if (res.status === 204) {
     return undefined as T;
@@ -132,14 +142,14 @@ export function uploadVideoWithProgress(opts: UploadVideoOptions): Promise<Video
           reject(new ApiError("Invalid server response after upload.", xhr.status));
         }
       } else {
-        let msg = `Upload failed (${xhr.status})`;
+        let parsedDetail: string | undefined;
         try {
           const parsed = JSON.parse(xhr.responseText);
-          if (parsed?.detail) msg = String(parsed.detail);
+          if (parsed?.detail) parsedDetail = String(parsed.detail);
         } catch {
           // ignore
         }
-        reject(new ApiError(msg, xhr.status));
+        reject(new ApiError(formatHttpError(xhr.status, parsedDetail), xhr.status));
       }
     });
 

@@ -323,8 +323,8 @@ Render does not host MongoDB natively, so pair **MongoDB Atlas** with two Render
    - **Build Command**: `npm install && npm run build`
    - **Publish Directory**: `dist`
 3. Under **Environment Variables**, add:
-   - `VITE_API_BASE_URL` = `https://clipora-ai-backend.onrender.com` *(your Step 2 backend URL, no trailing slash)*
-4. Click **Deploy Static Site**.
+   - `VITE_API_BASE_URL` = `https://clipora-ai-backend.onrender.com` *(your Step 2 backend URL, no trailing slash — must start with `VITE_` and must be saved in Render's **Environment Variables** before building, because `frontend/.env` is gitignored and missing it causes `405` errors on `POST` requests)*
+4. Click **Deploy Static Site** (if you add or change `VITE_API_BASE_URL` later, run **Manual Deploy → Clear build cache & deploy** so Vite bakes it into `dist/`).
 5. Once created, open **Redirects/Rewrites** in the Static Site settings and add an SPA rewrite rule so direct page refreshes work:
    - **Source**: `/*`
    - **Destination**: `/index.html`
